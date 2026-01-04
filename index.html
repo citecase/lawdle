@@ -235,13 +235,25 @@
         let currentRow = 0;
         let currentGuess = '';
         let gameOver = false;
-        const maxGuesses = 6;
+        const maxGuesses = 5;
         const wordLength = 7;
+        let chancesLeft = parseInt(localStorage.getItem('legalWordleChances') || '1');
+        let totalGames = parseInt(localStorage.getItem('legalWordleTotalGames') || '0');
 
         const board = document.getElementById('board');
         const message = document.getElementById('message');
         const newGameBtn = document.getElementById('newGame');
         const keys = document.querySelectorAll('.key');
+
+        function checkIfCanPlay() {
+            if (chancesLeft <= 0) {
+                gameOver = true;
+                showMessage('You\'ve already played once. Come back later!', 'lose');
+                keys.forEach(key => key.disabled = true);
+                return false;
+            }
+            return true;
+        }
 
         function initBoard() {
             board.innerHTML = '';
@@ -332,15 +344,23 @@
 
             if (guess === targetWord) {
                 gameOver = true;
+                chancesLeft--;
+                localStorage.setItem('legalWordleChances', chancesLeft.toString());
+                totalGames++;
+                localStorage.setItem('legalWordleTotalGames', totalGames.toString());
                 setTimeout(() => {
                     showMessage('You won! 🎉', 'win');
-                    newGameBtn.style.display = 'block';
+                    keys.forEach(key => key.disabled = true);
                 }, 700);
             } else if (currentRow === maxGuesses - 1) {
                 gameOver = true;
+                chancesLeft--;
+                localStorage.setItem('legalWordleChances', chancesLeft.toString());
+                totalGames++;
+                localStorage.setItem('legalWordleTotalGames', totalGames.toString());
                 setTimeout(() => {
-                    showMessage(`Game Over! Word was: ${targetWord}`, 'lose');
-                    newGameBtn.style.display = 'block';
+                    showMessage(`Correct answer: ${targetWord}`, 'lose');
+                    keys.forEach(key => key.disabled = true);
                 }, 700);
             } else {
                 currentRow++;
@@ -359,7 +379,7 @@
         }
 
         function handleKeyPress(key) {
-            if (gameOver) return;
+            if (gameOver || !checkIfCanPlay()) return;
 
             if (key === 'enter') {
                 checkGuess();
@@ -392,6 +412,11 @@
 
         // New game
         newGameBtn.addEventListener('click', () => {
+            if (chancesLeft <= 0) {
+                showMessage('You\'ve already played once. Come back later!', 'lose');
+                return;
+            }
+            
             targetWord = words[Math.floor(Math.random() * words.length)];
             currentRow = 0;
             currentGuess = '';
@@ -402,13 +427,16 @@
             // Reset keyboard
             keys.forEach(key => {
                 key.classList.remove('correct', 'present', 'absent');
+                key.disabled = false;
             });
             
             initBoard();
         });
 
         // Initialize game
-        initBoard();
+        if (checkIfCanPlay()) {
+            initBoard();
+        }
     </script>
 </body>
 </html>
